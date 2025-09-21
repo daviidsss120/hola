@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Te amo — Sobre interactivo</title>
+
+<!-- Fuente romántica para la notita -->
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg1: #04030a;
+    --bg2: #09172a;
+    --accent: #ffd54a; /* amarillo flor */
+    --paper: #fffaf0;
+    --rose-center: #b06b00;
+    --rose-shadow: rgba(0,0,0,0.18);
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: radial-gradient(1200px 600px at 10% 10%, rgba(255,255,255,0.02), transparent 10%),
+                linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 60%);
+    color:#fff;
+    overflow:hidden;
+  }
+
+  /* Container centrado */
+  .stage{
+    height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    gap:2rem;
+    padding:3rem;
+    box-sizing:border-box;
+  }
+
+  /* Fondo estrellado y bokeh suave */
+  .sky{
+    position:absolute;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+  }
+  .bokeh{
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:
+      radial-gradient(600px 200px at 10% 5%, rgba(255,215,120,0.02), transparent 10%),
+      radial-gradient(500px 180px at 85% 30%, rgba(255,240,200,0.02), transparent 10%);
+    mix-blend-mode:screen;
+    z-index:0;
+    pointer-events:none;
+  }
+
+  /* Floating hearts and sparkles */
+  .particles { position:absolute; inset:0; z-index:1; pointer-events:none; }
+  .heart {
+    position:absolute;
+    width:18px; height:18px;
+    transform-origin:center;
+    opacity:0.85;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35));
+    animation: floatUp linear infinite;
+  }
+  @keyframes floatUp{
+    0%{ transform: translateY(0) scale(0.9) rotate(0deg); opacity:0; }
+    8%{ opacity:1; }
+    100%{ transform: translateY(-38vh) scale(1.1) rotate(24deg); opacity:0; }
+  }
+
+  /* Card wrapper */
+  .card-wrap{
+    position:relative;
+    width:380px;
+    max-width:85vw;
+    height:380px;
+    max-height:85vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:5;
+    perspective:1200px;
+  }
+
+  /* Envelope */
+  .envelope{
+    width:320px;
+    height:200px;
+    position:relative;
+    transform-style:preserve-3d;
+    transition:transform .8s cubic-bezier(.2,.9,.3,1), box-shadow .25s;
+    cursor:pointer;
+    outline:none;
+    user-select:none;
+  }
+
+  .envelope:focus { box-shadow:0 12px 30px rgba(255,255,255,0.06), 0 4px 10px rgba(0,0,0,0.5); }
+
+  /* Back / envelope body */
+  .env-body{
+    position:absolute;
+    inset:0;
+    background: linear-gradient(180deg,#fffaf0,#fff3d6);
+    border-radius:10px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.45), inset 0 -3px 0 rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.06);
+    transform: translateZ(-14px);
+    overflow:visible;
+  }
+
+  /* Flap (tapa) */
+  .env-flap{
+    position:absolute;
+    left:0; right:0;
+    top:-2px;
+    height:120px;
+    transform-origin: top center;
+    transform: rotateX(0deg);
+    transition: transform .8s cubic-bezier(.2,.9,.3,1);
+    z-index:6;
+    pointer-events:none;
+  }
+
+  /* flap visuals using svg background */
+  .env-flap svg{ width:100%; height:100%; display:block; }
+
+  /* Paper inside */
+  .note{
+    width:86%;
+    height:82%;
+    background: linear-gradient(180deg, #fffefc, #fff8ee);
+    position:absolute;
+    left:7%; bottom:6%;
+    border-radius:6px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+    transform-origin: bottom center;
+    transform: translateY(12px) rotateX(-6deg);
+    transition: transform .8s cubic-bezier(.2,.9,.3,1), opacity .35s;
+    padding:22px 18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    z-index:4;
+    pointer-events:none;
+    opacity:0;
+  }
+
+  /* Nota visible cuando envelope abierto */
+  .open .env-flap{ transform: rotateX(180deg) translateY(-10px); }
+  .open .note{ transform: translateY(-120%) rotateX(0deg); opacity:1; pointer-events:auto; }
+
+  /* "Te amo" text style on note */
+  .note .message{
+    font-family: "Great Vibes", cursive;
+    font-size:44px;
+    color:#b23a2b;
+    line-height:1;
+    text-shadow: 0 6px 18px rgba(178,58,43,0.18);
+  }
+
+  /* Flower container that emerges */
+  .flower-emit{
+    position:absolute;
+    left:50%;
+    transform: translateX(-50%);
+    bottom: -30px;
+    width:160px;
+    height:160px;
+    z-index:6;
+    pointer-events:none;
+    opacity:0;
+    transition: transform .9s cubic-bezier(.2,.9,.3,1), opacity .5s;
+    transform-origin:50% 95%;
+  }
+  .open .flower-emit { transform: translateX(-50%) translateY(-36px) scale(1); opacity:1; }
+
+  /* small pop effect */
+  .flower-emit .flower{
+    transform-origin:center;
+    transform: scale(0.86) rotate(-6deg);
+    animation: flowerPulse 2s ease-in-out infinite;
+  }
+  @keyframes flowerPulse{
+    0%{ transform:scale(0.95) rotate(-6deg); }
+    50%{ transform:scale(1.02) rotate(-4deg); }
+    100%{ transform:scale(0.95) rotate(-6deg); }
+  }
+
+  /* decorative ribbon under the stems */
+  .ribbon{
+    position:absolute;
+    bottom:-34px;
+    left:50%;
+    transform:translateX(-50%) rotate(-6deg);
+    z-index:3;
+    width:220px;
+    height:44px;
+    pointer-events:none;
+  }
+  .ribbon .band{
+    width:100%;
+    height:100%;
+    background: linear-gradient(90deg, rgba(255,110,110,0.95), rgba(255,90,140,0.95));
+    border-radius:8px;
+    box-shadow:0 10px 24px rgba(0,0,0,0.35);
+    transform: rotate(2deg);
+  }
+
+  /* small caption under envelope */
+  .caption{
+    position:absolute;
+    bottom:18px;
+    left:50%;
+    transform:translateX(-50%);
+    color: rgba(255,255,255,0.8);
+    font-size:14px;
+    z-index:8;
+    text-shadow:0 6px 12px rgba(0,0,0,0.45);
+  }
+
+  /* reduced motion accessible */
+  @media (prefers-reduced-motion: reduce){
+    .heart, .flower-emit .flower, .env-flap, .note, .leaf, .env-body { transition:none !important; animation:none !important; }
+  }
+
+  /* Responsive tweaks */
+  @media (max-width:480px){
+    .card-wrap{ width:92vw; height:auto; }
+    .envelope{ width:86vw; height:46vw; }
+    .note .message{ font-size: calc(18px + 6vw); }
+  }
+
+</style>
+</head>
+<body>
+  <div class="stage" role="main" aria-label="Página romántica. Toque el sobre para ver la notita.">
+    <div class="sky" aria-hidden="true">
+      <div class="bokeh"></div>
+      <div class="particles" id="particles"></div>
+    </div>
+
+    <div class="card-wrap">
+      <div class="envelope" id="envelope" tabindex="0" aria-pressed="false" role="button" aria-label="Sobre. Presiona para abrir y ver la notita.">
+        <!-- flap (SVG art for nicer look) -->
+        <div class="env-flap" aria-hidden="true">
+          <svg viewBox="0 0 800 300" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="flapGrad" x1="0" x2="1">
+                <stop offset="0" stop-color="#fff9f1"/>
+                <stop offset="1" stop-color="#ffe9c7"/>
+              </linearGradient>
+              <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="8" stdDeviation="18" flood-color="#000" flood-opacity="0.35"/>
+              </filter>
+            </defs>
+            <g filter="url(#soft)">
+              <path d="M0 280 L400 30 L800 280 Z" fill="url(#flapGrad)" stroke="rgba(0,0,0,0.04)" stroke-width="1" />
+              <path d="M0 280 L400 30 L800 280" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="1.5"/>
+            </g>
+          </svg>
+        </div>
+
+        <!-- body -->
+        <div class="env-body" aria-hidden="true"></div>
+
+        <!-- note -->
+        <div class="note" id="note" aria-hidden="true">
+          <div class="message">te amo</div>
+        </div>
+
+        <!-- flower that emerges (SVG rose-like) -->
+        <div class="flower-emit" aria-hidden="true">
+          <!-- A layered SVG rose-ish blossom (stylized but richer than simple circles) -->
+          <svg class="flower" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flor amarilla">
+            <defs>
+              <radialGradient id="petalGrad1" cx="40%" cy="35%">
+                <stop offset="0%" stop-color="#fff7c7"/>
+                <stop offset="50%" stop-color="#ffe082"/>
+                <stop offset="100%" stop-color="#f2b400"/>
+              </radialGradient>
+              <radialGradient id="petalGrad2" cx="35%" cy="40%">
+                <stop offset="0%" stop-color="#fff3c1"/>
+                <stop offset="50%" stop-color="#ffd54a"/>
+                <stop offset="100%" stop-color="#f2a400"/>
+              </radialGradient>
+              <radialGradient id="centerGrad" cx="50%" cy="50%">
+                <stop offset="0%" stop-color="#ffd98a"/>
+                <stop offset="60%" stop-color="#c47b00"/>
+                <stop offset="100%" stop-color="#8a4a00"/>
+              </radialGradient>
+              <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.35"/>
+              </filter>
+            </defs>
+
+            <!-- petals layered with subtle transforms to create a rose-like swirl -->
+            <g transform="translate(100,100)" filter="url(#softShadow)">
+              <!-- outer loose petals -->
+              <g id="outer" transform="scale(1)">
+                <path d="M -10,-60 C 40,-90 80,-40 50,-10 C 30,10 -10,20 -30,8 C -60,-12 -30,-40 -10,-60 Z"
+                      fill="url(#petalGrad2)" transform="rotate(-10) translate(6,6)"/>
+                <path d="M -10,-60 C 40,-90 80,-40 50,-10 C 30,10 -10,20 -30,8 C -60,-12 -30,-40 -10,-60 Z"
+                      fill="url(#petalGrad2)" transform="rotate(20) translate(-8,2)"/>
+                <path d="M -10,-60 C 40,-90 80,-40 50,-10 C 30,10 -10,20 -30,8 C -60,-12 -30,-40 -10,-60 Z"
+                      fill="url(#petalGrad2)" transform="rotate(70) translate(-6,4)"/>
+                <path d="M -10,-60 C 40,-90 80,-40 50,-10 C 30,10 -10,20 -30,8 C -60,-12 -30,-40 -10,-60 Z"
+                      fill="url(#petalGrad2)" transform="rotate(120) translate(8,4)"/>
+              </g>
+
+              <!-- mid petals -->
+              <g id="mid">
+                <path d="M -6,-48 C 28,-72 58,-36 42,-12 C 26,8 2,14 -18,6 C -44,-4 -26,-26 -6,-48 Z"
+                      fill="url(#petalGrad1)" transform="rotate(10)"/>
+                <path d="M -6,-48 C 28,-72 58,-36 42,-12 C 26,8 2,14 -18,6 C -44,-4 -26,-26 -6,-48 Z"
+                      fill="url(#petalGrad1)" transform="rotate(-30)"/>
+                <path d="M -6,-48 C 28,-72 58,-36 42,-12 C 26,8 2,14 -18,6 C -44,-4 -26,-26 -6,-48 Z"
+                      fill="url(#petalGrad1)" transform="rotate(50)"/>
+              </g>
+
+              <!-- inner tight petals -->
+              <g id="inner">
+                <path d="M -2,-28 C 14,-38 34,-24 26,-8 C 18,6 2,10 -8,6 C -22,0 -12,-14 -2,-28 Z"
+                      fill="#fff5b8" transform="rotate(-10) scale(0.95)"/>
+                <path d="M -2,-28 C 14,-38 34,-24 26,-8 C 18,6 2,10 -8,6 C -22,0 -12,-14 -2,-28 Z"
+                      fill="#fff7c7" transform="rotate(30) scale(0.86)"/>
+                <ellipse cx="0" cy="-2" rx="14" ry="10" fill="url(#centerGrad)"/>
+              </g>
+
+              <!-- small glossy highlight -->
+              <ellipse cx="-18" cy="-18" rx="8" ry="4" fill="rgba(255,255,255,0.35)" transform="rotate(-30)"/>
+              <ellipse cx="12" cy="-8" rx="6" ry="3" fill="rgba(255,255,255,0.18)" transform="rotate(12)"/>
+            </g>
+          </svg>
+        </div>
+
+      </div>
+
+      <!-- decorative ribbon -->
+      <div class="ribbon" aria-hidden="true">
+        <div class="band"></div>
+      </div>
+    </div>
+
+    <div class="caption">Toca el sobre para abrir — o presiona Enter / Espacio</div>
+  </div>
+
+<script>
+  // Interactividad: abrir/cerrar el sobre
+  const envelope = document.getElementById('envelope');
+  const body = document.body;
+  let isOpen = false;
+
+  function toggleEnvelope() {
+    isOpen = !isOpen;
+    envelope.classList.toggle('open', isOpen);
+    envelope.setAttribute('aria-pressed', String(isOpen));
+    // Announce for screen readers (live region)
+    announce(isOpen ? 'Sobre abierto. Aparece una notita que dice te amo.' : 'Sobre cerrado.');
+  }
+
+  // keyboard handling
+  envelope.addEventListener('click', toggleEnvelope);
+  envelope.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      toggleEnvelope();
+    }
+  });
+
+  // small live region for screen readers
+  const live = document.createElement('div');
+  live.setAttribute('aria-live','polite');
+  live.style.position='absolute';
+  live.style.left='-9999px';
+  document.body.appendChild(live);
+  function announce(msg){ live.textContent = msg; }
+
+  // Particles: floating hearts
+  const particles = document.getElementById('particles');
+  const heartPath = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%"><path fill="#ff9ab3" d="M12 21s-7.84-4.93-10-8.12C-0.04 7.9 4.5 2 8.93 5.2 11 7 12 8 12 8s1-.98 3.07-2.8C19.5 2 24.04 7.9 22 12.88 19.84 16.07 12 21 12 21z"/></svg>';
+
+  function spawnHeart(i){
+    const el = document.createElement('div');
+    el.className = 'heart';
+    // random left position and size
+    const left = Math.random()*100;
+    const size = 10 + Math.random()*26;
+    el.style.left = left + '%';
+    el.style.bottom = Math.random()*6 + 'px';
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.style.animationDuration = (5 + Math.random()*6) + 's';
+    el.style.animationDelay = (Math.random()*2) + 's';
+    el.innerHTML = heartPath;
+    particles.appendChild(el);
+    // auto remove
+    setTimeout(()=> el.remove(), 15000);
+  }
+
+  // continuously spawn hearts (gentle)
+  setInterval(()=> spawnHeart(), 900);
+  for(let i=0;i<8;i++) spawnHeart();
+
+  // optional: clicking envelope also causes a small burst of petals/particles
+  envelope.addEventListener('click', ()=>{
+    // quick burst of small yellow spark circles
+    burstFlowers();
+  });
+
+  function burstFlowers(){
+    const burstCount = 18;
+    for(let i=0;i<burstCount;i++){
+      const el = document.createElement('div');
+      el.style.position='absolute';
+      el.style.width='8px';
+      el.style.height='8px';
+      el.style.background='radial-gradient(circle at 30% 30%, #fff7c7, #ffd54a)';
+      el.style.borderRadius='50%';
+      el.style.left = (50 + (Math.random()-0.5)*18) + '%';
+      el.style.top = (48 + (Math.random()-0.5)*18) + '%';
+      el.style.zIndex=9;
+      el.style.pointerEvents='none';
+      el.style.opacity='1';
+      el.style.transform='translate(-50%,-50%) scale(0.6)';
+      el.style.transition='transform 900ms cubic-bezier(.2,.9,.3,1), opacity 900ms ease';
+      document.querySelector('.stage').appendChild(el);
+      // animate outward
+      setTimeout(()=>{
+        const dx = (Math.random()-0.5)*260;
+        const dy = (Math.random()-0.9)*260;
+        el.style.transform = translate(${dx}px, ${dy}px) scale(0.2);
+        el.style.opacity = '0';
+      }, 40);
+      // remove after
+      setTimeout(()=> el.remove(), 1100);
+    }
+  }
+
+  // friendly hint: close envelope when clicking outside
+  document.addEventListener('click', (e)=>{
+    if(!envelope.contains(e.target) && isOpen){
+      // close when clicking outside
+      toggleEnvelope();
+    }
+  }, true);
+
+  // Accessibility: allow ESC to close
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape' && isOpen){
+      toggleEnvelope();
+      envelope.focus();
+    }
+  });
+
+  // Prevent accidental scroll on spacebar when envelope focused
+  window.addEventListener('keydown', function(e){
+    if(e.code === 'Space' && document.activeElement === envelope){
+      e.preventDefault();
+    }
+  });
+
+</script>
+</body>
+</html>
